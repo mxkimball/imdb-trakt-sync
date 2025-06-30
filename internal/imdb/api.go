@@ -108,14 +108,14 @@ func (c *client) authenticateUser() error {
 		return nil
 	}
 	if *c.Auth == config.IMDbAuthMethodCookies {
-		if err := setBrowserCookies(c.browser, *c.CookieAtMain, *c.CookieUbidMain); err != nil {
+		if err := setBrowserCookies(c.browser, *c.CookieAtMain); err != nil {
 			return err
 		}
 		tab, err := c.navigateAndValidateResponse(c.baseURL)
 		if err != nil {
 			return fmt.Errorf("failure navigating and validating response: %w", err)
 		}
-		authenticated, _, err := tab.Has("#nblogout")
+		authenticated, _, err := tab.Has("#navUserMenu")
 		if err != nil {
 			return fmt.Errorf("failure finding logout div")
 		}
@@ -723,7 +723,7 @@ func buildSelector(ids ...string) string {
 	return fmt.Sprintf(format, selectors.String())
 }
 
-func setBrowserCookies(browser *rod.Browser, cookieAtMain, cookieUbidMain string) error {
+func setBrowserCookies(browser *rod.Browser, cookieAtMain string) error {
 	cookies := []*proto.NetworkCookieParam{
 		{
 			Name:   cookieNameAtMain,
@@ -732,7 +732,7 @@ func setBrowserCookies(browser *rod.Browser, cookieAtMain, cookieUbidMain string
 		},
 		{
 			Name:   cookieNameUbidMain,
-			Value:  cookieUbidMain,
+			Value:  "dummy", // value does not matter
 			Domain: cookieNameDomain,
 		},
 	}
