@@ -14,8 +14,7 @@ env:
   ITS_IMDB_LISTS: ${{ vars.IMDB_LISTS }}
   ITS_IMDB_IGNOREDLISTS: ${{ vars.IMDB_IGNOREDLISTS }}
   ITS_IMDB_TRACE: ${{ vars.IMDB_TRACE }}
-  ITS_IMDB_HEADLESS: true
-  ITS_IMDB_BROWSERPATH: ${{ github.workspace }}/chrome-linux/chrome
+  ITS_IMDB_HEADLESS: false
   ITS_SYNC_MODE: ${{ vars.SYNC_MODE }}
   ITS_SYNC_HISTORY: ${{ vars.SYNC_HISTORY }}
   ITS_SYNC_RATINGS: ${{ vars.SYNC_RATINGS }}
@@ -31,16 +30,15 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v5
-    - name: Install Google Chrome
+    - name: Locate Google Chrome
       run: |
-        wget -q https://storage.googleapis.com/chromium-browser-snapshots/Linux_x64/1321438/chrome-linux.zip
-        unzip -q chrome-linux.zip
-        if test -f "$ITS_IMDB_BROWSERPATH"; then
-          echo "Google Chrome binary stored at $ITS_IMDB_BROWSERPATH"
-        else
-          echo "Google Chrome binary not found at $ITS_IMDB_BROWSERPATH"
+        browser_path="$(command -v google-chrome || true)"
+        if [ -z "$browser_path" ]; then
+          echo "Google Chrome is not installed on this runner"
           exit 1
         fi
+        echo "ITS_IMDB_BROWSERPATH=$browser_path" >> "$GITHUB_ENV"
+        "$browser_path" --version
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
@@ -57,7 +55,7 @@ jobs:
           echo "no TRAKT_TOKEN secret set; sync will print device authorization instructions, wait for manual auth and fail if unattended"
         fi
     - name: Sync
-      run: make sync
+      run: xvfb-run --auto-servernum make sync
     # Trakt rotates the refresh token every 7 days, so the token file
     # written by Sync (if any) must be written back to the repository
     # secret, or the next scheduled run will require manual intervention.
